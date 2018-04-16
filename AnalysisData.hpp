@@ -5,11 +5,7 @@
 #ifndef PARTPLAY_ANALYSISDATA_HPP
 #define PARTPLAY_ANALYSISDATA_HPP
 
-#include "benchmarks/development/old_structures/structure_parts.h"
-#include "benchmarks/development/old_io/parameters.h"
-#include "benchmarks/development/old_io/hdf5functions.h"
-#include "benchmarks/development/old_io/write_parts.h"
-#include "src/misc/APRTimer.hpp"
+#include "misc/APRTimer.hpp"
 
 #include <cstdio>
 #include <iostream>
@@ -22,7 +18,7 @@
 std::string exec(const char* cmd);
 
 
-class AnalysisData: public Data_manager{
+class AnalysisData: public Data_manager {
     //
     //  Bevan Cheeseman 2016
     //
