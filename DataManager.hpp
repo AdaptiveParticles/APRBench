@@ -1,4 +1,17 @@
 
+#ifndef DataManager
+#define DataManager
+
+#include <cstdio>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <array>
+#include <ctime>
+#include <vector>
+#include <map>
+
 class Data_set_id{
 public:
     void* vec;
@@ -33,9 +46,16 @@ public:
 
 };
 
+template<typename key, typename val>
+struct my_hash_map
+{
+    //
+    //  Template class for the hash table or, ordered map_inplace I use.
+    //
 
+    typedef std::map<key,val> type;
+};
 class Data_manager{
-
     
 protected:
     
@@ -52,7 +72,7 @@ protected:
 public:
     
     Data_manager(){};
-    
+
     my_hash_map<std::string,Data_set_id>::type part_data_list;
     
     void create_bool_dataset(std::string data_set_name,int data_set_size){
@@ -126,8 +146,6 @@ public:
         Data_set_id data_id(&part_data_string,(unsigned int)(part_data_string.size()-1),"string",0);
         part_data_list[data_set_name] =  data_id;
     }
-    
-    
 
 
     template<typename T>
@@ -160,3 +178,4 @@ public:
 
 
 };
+#endif
