@@ -6,8 +6,7 @@
 #define PARTPLAY_ANALYSISDATA_HPP
 
 #include "DataManager.hpp"
-
-class APRTimer;
+#include "misc/APRTimer.hpp"
 
 #include <cstdio>
 #include <iostream>
@@ -16,6 +15,7 @@ class APRTimer;
 #include <string>
 #include <array>
 #include <ctime>
+#include <fstream>
 
 std::string exec(const char* cmd);
 
@@ -102,7 +102,7 @@ class AnalysisData: public Data_manager {
         seconds = difftime(timer,mktime(&y2k));
 
 
-        file_name = name + std::to_string((uint64)seconds);
+        file_name = name + std::to_string((uint64_t)seconds);
 
         //get the current git version
         get_git_version();
@@ -153,59 +153,59 @@ class AnalysisData: public Data_manager {
     void get_git_version();
 
 };
-inline void AnalysisData::write_analysis_data_hdf5(){
-
-    std::string save_loc = "";
-
-    std::string hdf5_file_name = save_loc + file_name + ".h5";
-
-    hdf5_create_file(hdf5_file_name);
-
-    //hdf5 inits
-    hid_t fid, pr_groupid;
-    H5G_info_t info;
-
-    hsize_t dims;
-
-    fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
-
-    //////////////////////////////////////////////////////////////////
-    //
-    //  Write meta-data to the file
-    //
-    //
-    //
-    ///////////////////////////////////////////////////////////////////////
-    dims = 1;
-
-    //create the main group
-    pr_groupid = H5Gcreate2(fid,"Analysis_data",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
-    H5Gget_info( pr_groupid, &info );
-
-    //////////////////////////////////////////////////////////////////
-    //
-    //  Write analysis data to the file
-    //
-    //
-    //
-    ///////////////////////////////////////////////////////////////////////
-
-    std::vector<std::string> extra_data_type;
-    std::vector<std::string> extra_data_name;
-
-    int req_size = 0;
-    int flag_type = 1;
-
-    write_part_data_to_hdf5(*this,pr_groupid,extra_data_type,extra_data_name,flag_type,req_size);
-
-    //close shiz
-    H5Gclose(pr_groupid);
-    H5Fclose(fid);
-
-    std::cout << "Data Analysis File Writing Complete" << std::endl;
-
-
-}
+//inline void AnalysisData::write_analysis_data_hdf5(){
+//
+//    std::string save_loc = "";
+//
+//    std::string hdf5_file_name = save_loc + file_name + ".h5";
+//
+//    hdf5_create_file(hdf5_file_name);
+//
+//    //hdf5 inits
+//    hid_t fid, pr_groupid;
+//    H5G_info_t info;
+//
+//    hsize_t dims;
+//
+//    fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
+//
+//    //////////////////////////////////////////////////////////////////
+//    //
+//    //  Write meta-data to the file
+//    //
+//    //
+//    //
+//    ///////////////////////////////////////////////////////////////////////
+//    dims = 1;
+//
+//    //create the main group
+//    pr_groupid = H5Gcreate2(fid,"Analysis_data",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
+//    H5Gget_info( pr_groupid, &info );
+//
+//    //////////////////////////////////////////////////////////////////
+//    //
+//    //  Write analysis data to the file
+//    //
+//    //
+//    //
+//    ///////////////////////////////////////////////////////////////////////
+//
+//    std::vector<std::string> extra_data_type;
+//    std::vector<std::string> extra_data_name;
+//
+//    int req_size = 0;
+//    int flag_type = 1;
+//
+//    write_part_data_to_hdf5(*this,pr_groupid,extra_data_type,extra_data_name,flag_type,req_size);
+//
+//    //close shiz
+//    H5Gclose(pr_groupid);
+//    H5Fclose(fid);
+//
+//    std::cout << "Data Analysis File Writing Complete" << std::endl;
+//
+//
+//}
 
 
 static long long GetFileSize(std::string filename)
