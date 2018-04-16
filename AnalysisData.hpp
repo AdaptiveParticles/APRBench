@@ -6,9 +6,10 @@
 #define PARTPLAY_ANALYSISDATA_HPP
 
 #include "DataManager.hpp"
-#include "misc/APRTimer.hpp"
-#include "io/hdf5functions_blosc.h"
-#include "data_structures/APR/APR.hpp"
+//#include "misc/APRTimer.hpp"
+#include "../LibAPR/src/io/hdf5functions_blosc.h"
+//#include "../LibAPR/src/data_structures/APR/APR.hpp"
+//#include "../LibAPR/src/io/APRWriter.hpp"
 
 #include <cstdio>
 #include <iostream>
@@ -20,6 +21,56 @@
 #include <fstream>
 
 std::string exec(const char* cmd);
+
+struct AprFile {
+    enum class Operation {READ, WRITE};
+    hid_t fileId = -1;
+    hid_t groupId = -1;
+    hid_t objectId = -1;
+    const char * const mainGroup = "ParticleRepr";
+    const char * const subGroup  = "ParticleRepr/t";
+
+    AprFile(const std::string &aFileName, const Operation aOp) {
+        hdf5_register_blosc();
+        switch(aOp) {
+            case Operation::READ:
+                fileId = H5Fopen(aFileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+                if (fileId == -1) {
+                    std::cerr << "Could not open file [" << aFileName << "]" << std::endl;
+                    return;
+                }
+                groupId = H5Gopen2(fileId, mainGroup, H5P_DEFAULT);
+                objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
+                break;
+            case Operation::WRITE:
+                fileId = hdf5_create_file_blosc(aFileName);
+                if (fileId == -1) {
+                    std::cerr << "Could not create file [" << aFileName << "]" << std::endl;
+                    return;
+                }
+                groupId = H5Gcreate2(fileId, mainGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                break;
+        }
+        if (groupId == -1 || objectId == -1) { H5Fclose(fileId); fileId = -1; }
+    }
+    ~AprFile() {
+        if (objectId != -1) H5Gclose(objectId);
+        if (groupId != -1) H5Gclose(groupId);
+        if (fileId != -1) H5Fclose(fileId);
+    }
+
+    /**
+     * Is File opened?
+     */
+    bool isOpened() const { return fileId != -1 && groupId != -1 && objectId != -1; }
+
+    hsize_t getFileSize() const {
+        hsize_t size;
+        H5Fget_filesize(fileId, &size);
+        return size;
+    }
+};
 
 class AnalysisData: public Data_manager {
     //
@@ -138,16 +189,16 @@ class AnalysisData: public Data_manager {
 
     }
 
-
-    void add_timer(APRTimer& timer){
-
-        //set up timing variables
-
-        for (int i = 0; i < timer.timings.size(); i++) {
-            add_float_data(timer.timing_names[i],timer.timings[i]);
-        }
-
-    }
+//
+//    void add_timer(APRTimer& timer){
+//
+//        //set up timing variables
+//
+//        for (int i = 0; i < timer.timings.size(); i++) {
+//            add_float_data(timer.timing_names[i],timer.timings[i]);
+//        }
+//
+//    }
 
     //writes the results to hdf5
     void write_analysis_data_hdf5();
@@ -156,7 +207,7 @@ class AnalysisData: public Data_manager {
 
 };
 
-void hdf5_write_string_blosc(hid_t obj_id,const char* attr_name,std::string output_str){
+inline void hdf5_write_string_blosc(hid_t obj_id,const char* attr_name,std::string output_str){
     //
     //  Writes string information as an attribute
     //
@@ -180,7 +231,7 @@ void hdf5_write_string_blosc(hid_t obj_id,const char* attr_name,std::string outp
 
 }
 
-void write_part_data_to_hdf5(Data_manager& p_rep,hid_t obj_id,std::vector<std::string>& extra_data_type,std::vector<std::string>& extra_data_name,int flag_type,int req_size){
+inline void write_part_data_to_hdf5(Data_manager& p_rep,hid_t obj_id,std::vector<std::string>& extra_data_type,std::vector<std::string>& extra_data_name,int flag_type,int req_size){
     //
     //  Bevan Cheeseman 2016
     //
@@ -307,7 +358,7 @@ inline void AnalysisData::write_analysis_data_hdf5() {
     std::string save_loc = "";
     std::string hdf5_file_name = save_loc + file_name + ".h5";
 
-    APRWriter::AprFile f(hdf5_file_name, APRWriter::AprFile::Operation::WRITE);
+    AprFile f(hdf5_file_name, AprFile::Operation::WRITE);
 
     //create the main group
     hid_t pr_groupid = H5Gcreate2(f.fileId, "Analysis_data", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -343,7 +394,7 @@ static long long GetFileSize(std::string filename)
 #endif
 
 
-std::string exec(const char* cmd) {
+inline std::string exec(const char* cmd) {
     std::array<char, 128> buffer;
     std::string result;
     std::shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
