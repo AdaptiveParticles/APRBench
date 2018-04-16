@@ -70,7 +70,7 @@ class AnalysisData: public Data_manager {
         get_git_version();
     }
 
-    AnalysisData(std::string name,std::string description,int argc, char **argv): Data_manager(),name(name),description(description)
+    AnalysisData(std::string name,std::string description,int argc, const char **argv): Data_manager(),name(name),description(description)
     {
 
         // current date/time based on current system
@@ -324,63 +324,8 @@ inline void AnalysisData::write_analysis_data_hdf5() {
     //close shiz
     H5Gclose(pr_groupid);
 
-    std::cout << "Data Analysis File Writing Complete" << std::endl;
+    std::cout << "Data Analysis File Writing Complete to [" << hdf5_file_name << "] file" << std::endl;
 }
-
-//inline void AnalysisData::write_analysis_data_hdf5(){
-//
-//    std::string save_loc = "";
-//
-//    std::string hdf5_file_name = save_loc + file_name + ".h5";
-//
-//    hdf5_create_file(hdf5_file_name);
-//
-//    //hdf5 inits
-//    hid_t fid, pr_groupid;
-//    H5G_info_t info;
-//
-//    hsize_t dims;
-//
-//    fid = H5Fopen(hdf5_file_name.c_str(),H5F_ACC_RDWR,H5P_DEFAULT);
-//
-//    //////////////////////////////////////////////////////////////////
-//    //
-//    //  Write meta-data to the file
-//    //
-//    //
-//    //
-//    ///////////////////////////////////////////////////////////////////////
-//    dims = 1;
-//
-//    //create the main group
-//    pr_groupid = H5Gcreate2(fid,"Analysis_data",H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);
-//    H5Gget_info( pr_groupid, &info );
-//
-//    //////////////////////////////////////////////////////////////////
-//    //
-//    //  Write analysis data to the file
-//    //
-//    //
-//    //
-//    ///////////////////////////////////////////////////////////////////////
-//
-//    std::vector<std::string> extra_data_type;
-//    std::vector<std::string> extra_data_name;
-//
-//    int req_size = 0;
-//    int flag_type = 1;
-//
-//    write_part_data_to_hdf5(*this,pr_groupid,extra_data_type,extra_data_name,flag_type,req_size);
-//
-//    //close shiz
-//    H5Gclose(pr_groupid);
-//    H5Fclose(fid);
-//
-//    std::cout << "Data Analysis File Writing Complete" << std::endl;
-//
-//
-//}
-
 
 static long long GetFileSize(std::string filename)
 {
