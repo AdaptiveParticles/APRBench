@@ -7,6 +7,7 @@
 
 #include "DataManager.hpp"
 #include "misc/APRTimer.hpp"
+#include "io/hdf5functions_blosc.h"
 
 #include <cstdio>
 #include <iostream>
