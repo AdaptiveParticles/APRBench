@@ -22,16 +22,63 @@
 
 std::string exec(const char* cmd);
 
+inline void hdf5_write_data_blosc2(hid_t obj_id,hid_t type_id,const char* ds_name,hsize_t rank,hsize_t* dims, void* data,unsigned int comp_type,unsigned int comp_level,unsigned int shuffle ){
+    //writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
+
+    //Declare the required hdf5 shiz
+    hid_t space_id,dset_id,plist_id;
+    hsize_t *cdims = new hsize_t[rank]; //chunking dims
+
+    //compression parameters
+    int deflate_level = 9;
+
+    //dataspace id
+    space_id = H5Screate_simple(rank, dims, NULL);
+    plist_id  = H5Pcreate(H5P_DATASET_CREATE);
+
+    int max_size = 200000;
+
+    if (rank == 1) {
+        if (dims[0] < max_size){
+            cdims[0] = dims[0];
+        }else {
+            cdims[0] = max_size;
+        }
+    }
+    else {
+        cdims[0] = 100;
+        cdims[1] = 100;
+    }
+
+    H5Pset_chunk(plist_id, rank, cdims);
+
+    /////SET COMPRESSION TYPE /////
+
+    //DEFLATE ENCODING (GZIP)
+    H5Pset_deflate (plist_id, deflate_level);
+
+    // Uncomment these lines to set SZIP Compression
+    // H5Pset_szip (plist_id, szip_options_mask, szip_pixels_per_block);
+    //
+    //////////////////////////////
+
+    //create write and close
+    dset_id = H5Dcreate2(obj_id,ds_name,type_id,space_id,H5P_DEFAULT,plist_id,H5P_DEFAULT);
+
+    H5Dwrite(dset_id,type_id,H5S_ALL,H5S_ALL,H5P_DEFAULT,data);
+
+    H5Dclose(dset_id);
+
+    H5Pclose(plist_id);
+
+    H5Sclose(space_id);
+};
+
 struct AprFile {
     enum class Operation {READ, WRITE};
     hid_t fileId = -1;
-    hid_t groupId = -1;
-    hid_t objectId = -1;
-    const char * const mainGroup = "ParticleRepr";
-    const char * const subGroup  = "ParticleRepr/t";
 
     AprFile(const std::string &aFileName, const Operation aOp) {
-        hdf5_register_blosc();
         switch(aOp) {
             case Operation::READ:
                 fileId = H5Fopen(aFileName.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
@@ -39,8 +86,6 @@ struct AprFile {
                     std::cerr << "Could not open file [" << aFileName << "]" << std::endl;
                     return;
                 }
-                groupId = H5Gopen2(fileId, mainGroup, H5P_DEFAULT);
-                objectId = H5Gopen2(fileId, subGroup, H5P_DEFAULT);
                 break;
             case Operation::WRITE:
                 fileId = hdf5_create_file_blosc(aFileName);
@@ -48,22 +93,17 @@ struct AprFile {
                     std::cerr << "Could not create file [" << aFileName << "]" << std::endl;
                     return;
                 }
-                groupId = H5Gcreate2(fileId, mainGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-                objectId = H5Gcreate2(fileId, subGroup, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
                 break;
         }
-        if (groupId == -1 || objectId == -1) { H5Fclose(fileId); fileId = -1; }
     }
     ~AprFile() {
-        if (objectId != -1) H5Gclose(objectId);
-        if (groupId != -1) H5Gclose(groupId);
         if (fileId != -1) H5Fclose(fileId);
     }
 
     /**
      * Is File opened?
      */
-    bool isOpened() const { return fileId != -1 && groupId != -1 && objectId != -1; }
+    bool isOpened() const { return fileId != -1; }
 
     hsize_t getFileSize() const {
         hsize_t size;
@@ -189,6 +229,22 @@ class AnalysisData: public Data_manager {
 
     }
 
+    void add_string_data(std::string name, std::string value){
+
+        //first check if its first run and the variables need to be set up
+        Part_data<float> *check_ref = get_data_ref<float>(name);
+
+        if (check_ref == nullptr) {
+            // First experiment need to set up the variables
+
+            //pipeline parameters
+            create_string_dataset(name, 0);
+        }
+
+        get_data_ref<std::string>(name)->data.push_back(value);
+        part_data_list[name].print_flag = true;
+
+    }
 //
 //    void add_timer(APRTimer& timer){
 //
@@ -231,6 +287,37 @@ inline void hdf5_write_string_blosc(hid_t obj_id,const char* attr_name,std::stri
 
 }
 
+///**
+// * writes data to the hdf5 file or group identified by obj_id of hdf5 datatype data_type
+// */
+//inline void hdf5_write_data_blosc(hid_t obj_id, hid_t type_id, const char *ds_name, hsize_t rank, hsize_t *dims, void *data ,unsigned int comp_type,unsigned int comp_level,unsigned int shuffle) {
+//    hid_t plist_id  = H5Pcreate(H5P_DATASET_CREATE);
+//
+//    // Dataset must be chunked for compression
+//    const uint64_t max_size = 100000;
+//    hsize_t cdims = (dims[0] < max_size) ? dims[0] : max_size;
+//    rank = 1;
+//    H5Pset_chunk(plist_id, rank, &cdims);
+//
+//    /////SET COMPRESSION TYPE /////
+//    // But you can also taylor Blosc parameters to your needs
+//    // 0 to 3 (inclusive) param slots are reserved.
+//    const int numOfParams = 7;
+//    unsigned int cd_values[numOfParams];
+//    cd_values[4] = comp_level; // compression level
+//    cd_values[5] = shuffle;    // 0: shuffle not active, 1: shuffle active
+//    cd_values[6] = comp_type;  // the actual compressor to use
+//    H5Pset_filter(plist_id, FILTER_BLOSC, H5Z_FLAG_OPTIONAL, numOfParams, cd_values);
+//
+//    //create write and close
+//    hid_t space_id = H5Screate_simple(rank, dims, NULL);
+//    hid_t dset_id = H5Dcreate2(obj_id, ds_name, type_id, space_id, H5P_DEFAULT, plist_id, H5P_DEFAULT);
+//    H5Dwrite(dset_id,type_id,H5S_ALL,H5S_ALL,H5P_DEFAULT,data);
+//    H5Dclose(dset_id);
+//
+//    H5Pclose(plist_id);
+//}
+
 inline void write_part_data_to_hdf5(Data_manager& p_rep,hid_t obj_id,std::vector<std::string>& extra_data_type,std::vector<std::string>& extra_data_name,int flag_type,int req_size){
     //
     //  Bevan Cheeseman 2016
@@ -263,7 +350,7 @@ inline void write_part_data_to_hdf5(Data_manager& p_rep,hid_t obj_id,std::vector
 
 
 
-                    hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT8,part_data_info.first.c_str(),rank,&dims,data_pointer->data.data(), BLOSC_ZSTD, 1, 2);
+                    hdf5_write_data_blosc2(obj_id,H5T_NATIVE_UINT8,part_data_info.first.c_str(),rank,&dims,data_pointer->data.data(), BLOSC_ZSTD, 1, 2);
                 }
 
             } else if (part_data_info.second.data_type=="bool"){
@@ -277,7 +364,7 @@ inline void write_part_data_to_hdf5(Data_manager& p_rep,hid_t obj_id,std::vector
                     extra_data_name.push_back(part_data_info.first);
                     extra_data_type.push_back(part_data_info.second.data_type);
 
-                    hdf5_write_data_blosc(obj_id,H5T_NATIVE_UINT16,part_data_info.first.c_str(),rank,&dims,data_pointer->data.data(), BLOSC_ZSTD, 1, 2 );
+                    hdf5_write_data_blosc2(obj_id,H5T_NATIVE_UINT16,part_data_info.first.c_str(),rank,&dims,data_pointer->data.data(), BLOSC_ZSTD, 1, 2 );
                 }
 
             }else if (part_data_info.second.data_type=="int16_t"){
@@ -289,7 +376,7 @@ inline void write_part_data_to_hdf5(Data_manager& p_rep,hid_t obj_id,std::vector
                     extra_data_name.push_back(part_data_info.first);
                     extra_data_type.push_back(part_data_info.second.data_type);
 
-                    hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT16,part_data_info.first.c_str(),rank,&dims,data_pointer->data.data(), BLOSC_ZSTD, 1, 2 );
+                    hdf5_write_data_blosc2(obj_id,H5T_NATIVE_INT16,part_data_info.first.c_str(),rank,&dims,data_pointer->data.data(), BLOSC_ZSTD, 1, 2 );
                 }
 
             }  else if (part_data_info.second.data_type=="int"){
@@ -301,7 +388,7 @@ inline void write_part_data_to_hdf5(Data_manager& p_rep,hid_t obj_id,std::vector
                     extra_data_name.push_back(part_data_info.first);
                     extra_data_type.push_back(part_data_info.second.data_type);
 
-                    hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT,part_data_info.first.c_str(),rank,&dims,data_pointer->data.data(), BLOSC_ZSTD, 1, 2 );
+                    hdf5_write_data_blosc2(obj_id,H5T_NATIVE_INT,part_data_info.first.c_str(),rank,&dims,data_pointer->data.data(), BLOSC_ZSTD, 1, 2 );
 
                 }
             } else if (part_data_info.second.data_type=="float"){
@@ -312,7 +399,7 @@ inline void write_part_data_to_hdf5(Data_manager& p_rep,hid_t obj_id,std::vector
                     extra_data_name.push_back(part_data_info.first);
                     extra_data_type.push_back(part_data_info.second.data_type);
 
-                    hdf5_write_data_blosc(obj_id,H5T_NATIVE_FLOAT,part_data_info.first.c_str(),rank,&dims,data_pointer->data.data(), BLOSC_ZSTD, 1, 2 );
+                    hdf5_write_data_blosc2(obj_id,H5T_NATIVE_FLOAT,part_data_info.first.c_str(),rank,&dims,data_pointer->data.data(), BLOSC_ZSTD, 1, 2 );
                 }
 
             } else if (part_data_info.second.data_type=="int8_t") {
@@ -326,7 +413,7 @@ inline void write_part_data_to_hdf5(Data_manager& p_rep,hid_t obj_id,std::vector
                     extra_data_type.push_back(part_data_info.second.data_type);
 
 
-                    hdf5_write_data_blosc(obj_id,H5T_NATIVE_INT8,part_data_info.first.c_str(),rank,&dims,data_pointer->data.data(), BLOSC_ZSTD, 1, 2  );
+                    hdf5_write_data_blosc2(obj_id,H5T_NATIVE_INT8,part_data_info.first.c_str(),rank,&dims,data_pointer->data.data(), BLOSC_ZSTD, 1, 2  );
                 }
 
             } else if (part_data_info.second.data_type=="string") {
