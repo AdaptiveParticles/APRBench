@@ -36,7 +36,7 @@ inline void hdf5_write_data_blosc2(hid_t obj_id,hid_t type_id,const char* ds_nam
     space_id = H5Screate_simple(rank, dims, NULL);
     plist_id  = H5Pcreate(H5P_DATASET_CREATE);
 
-    int max_size = 200000;
+    unsigned int max_size = 200000;
 
     if (rank == 1) {
         if (dims[0] < max_size){
@@ -72,7 +72,7 @@ inline void hdf5_write_data_blosc2(hid_t obj_id,hid_t type_id,const char* ds_nam
     H5Pclose(plist_id);
 
     H5Sclose(space_id);
-};
+}
 
 struct AprFile {
     enum class Operation {READ, WRITE};
@@ -203,7 +203,7 @@ class AnalysisData: public Data_manager {
         std::vector<std::string> arguments(argv + 1, argv + argc);
 
         //add the command line arguments
-        for (int i = 0; i < arguments.size(); ++i) {
+        for (unsigned int i = 0; i < arguments.size(); ++i) {
             create_string_dataset("arg_" + std::to_string(i),0);
             get_data_ref<std::string>("arg_" + std::to_string(i))->data.push_back(arguments[i]);
             part_data_list["arg_" + std::to_string(i)].print_flag = true;
@@ -270,7 +270,6 @@ inline void hdf5_write_string_blosc(hid_t obj_id,const char* attr_name,std::stri
     //
 
     hid_t       aid, atype, attr;
-    herr_t      status;
 
     aid = H5Screate(H5S_SCALAR);
 
@@ -278,11 +277,11 @@ inline void hdf5_write_string_blosc(hid_t obj_id,const char* attr_name,std::stri
 
     if (output_str.size() > 0){
 
-        status = H5Tset_size (atype, output_str.size());
+        H5Tset_size (atype, output_str.size());
 
         attr = H5Acreate2(obj_id, attr_name, atype, aid, H5P_DEFAULT,H5P_DEFAULT);
 
-        status = H5Awrite (attr, atype,output_str.c_str());
+        H5Awrite (attr, atype,output_str.c_str());
     }
 
 }
@@ -318,7 +317,7 @@ inline void hdf5_write_string_blosc(hid_t obj_id,const char* attr_name,std::stri
 //    H5Pclose(plist_id);
 //}
 
-inline void write_part_data_to_hdf5(Data_manager& p_rep,hid_t obj_id,std::vector<std::string>& extra_data_type,std::vector<std::string>& extra_data_name,int flag_type,int req_size){
+inline void write_part_data_to_hdf5(Data_manager& p_rep,hid_t obj_id,std::vector<std::string>& extra_data_type,std::vector<std::string>& extra_data_name,int flag_type,unsigned int req_size){
     //
     //  Bevan Cheeseman 2016
     //
@@ -465,7 +464,7 @@ inline void AnalysisData::write_analysis_data_hdf5() {
     std::cout << "Data Analysis File Writing Complete to [" << hdf5_file_name << "] file" << std::endl;
     clearAll();
 }
-
+/*
 static long long GetFileSize(std::string filename)
 {
     std::ifstream mySource;
@@ -475,7 +474,7 @@ static long long GetFileSize(std::string filename)
     mySource.close();
     return size;
 }
-
+*/
 #ifdef _MSC_VER
 #define popen _popen
 #define pclose _pclose
