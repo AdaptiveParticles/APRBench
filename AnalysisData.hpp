@@ -463,6 +463,7 @@ inline void AnalysisData::write_analysis_data_hdf5() {
     H5Gclose(pr_groupid);
 
     std::cout << "Data Analysis File Writing Complete to [" << hdf5_file_name << "] file" << std::endl;
+    clearAll();
 }
 
 static long long GetFileSize(std::string filename)

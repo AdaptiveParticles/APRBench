@@ -71,8 +71,21 @@ protected:
     
 public:
     
-    Data_manager(){};
+    Data_manager(){
 
+    };
+
+    void clearAll() {
+        part_data_list.clear();
+        part_data_bool.clear();
+        part_data_float.clear();
+        part_data_uint16.clear();
+        part_data_int16.clear();
+        part_data_int.clear();
+        part_data_uint8.clear();
+        part_data_int8.clear();
+        part_data_string.clear();
+    }
     my_hash_map<std::string,Data_set_id>::type part_data_list;
     
     void create_bool_dataset(std::string data_set_name,int data_set_size){
