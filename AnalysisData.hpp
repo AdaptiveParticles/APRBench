@@ -161,7 +161,7 @@ class AnalysisData: public Data_manager {
         get_git_version();
     }
 
-    AnalysisData(std::string name,std::string description,int argc, const char **argv): Data_manager(),name(name),description(description)
+    AnalysisData(std::string name,std::string description,int argc, char **argv): Data_manager(),name(name),description(description)
     {
 
         // current date/time based on current system
