@@ -6,7 +6,7 @@
 #define PARTPLAY_ANALYSISDATA_HPP
 
 #include "DataManager.hpp"
-//#include "misc/APRTimer.hpp"
+#include "../LibAPR/src/misc/APRTimer.hpp"
 #include "../LibAPR/src/io/hdf5functions_blosc.h"
 //#include "../LibAPR/src/data_structures/APR/APR.hpp"
 //#include "../LibAPR/src/io/APRWriter.hpp"
@@ -245,16 +245,16 @@ class AnalysisData: public Data_manager {
         part_data_list[name].print_flag = true;
 
     }
-//
-//    void add_timer(APRTimer& timer){
-//
-//        //set up timing variables
-//
-//        for (int i = 0; i < timer.timings.size(); i++) {
-//            add_float_data(timer.timing_names[i],timer.timings[i]);
-//        }
-//
-//    }
+
+    void add_timer(APRTimer& timer){
+
+        //set up timing variables
+
+        for (int i = 0; i < timer.timings.size(); i++) {
+            add_float_data(timer.timing_names[i],timer.timings[i]);
+        }
+
+    }
 
     //writes the results to hdf5
     void write_analysis_data_hdf5();
